@@ -3,11 +3,11 @@ const router = express.Router();
 const authController = require('../controllers/auth.controller');
 const bookingController = require('../controllers/booking.controller');
 const paymentController = require('../controllers/payment.controller');
-const { authMiddleware, roleMiddleware } = require('../middlewares');
+const { authMiddleware, roleMiddleware, validateRegister, validateLogin } = require('../middlewares');
 
 // Auth Routes
-router.post('/auth/register', authController.register);
-router.post('/auth/login', authController.login);
+router.post('/auth/register', validateRegister, authController.register);
+router.post('/auth/login', validateLogin, authController.login);
 
 // Booking Routes
 router.post('/bookings', authMiddleware, bookingController.create);

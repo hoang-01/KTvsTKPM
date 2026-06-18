@@ -3,7 +3,7 @@ import {
   StyleSheet, View, Text, ScrollView, 
   TouchableOpacity, Image, Platform, Alert, ActivityIndicator, Animated, FlatList, Dimensions 
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ArrowLeft, Clock, Calendar as CalendarIcon, ChevronLeft, ChevronRight } from 'lucide-react-native';
 import { theme } from '../theme/theme';
 import { PremiumButton } from '../components/Common';
@@ -11,7 +11,6 @@ import { StatusBar } from 'expo-status-bar';
 import { bookingService } from '../services/api';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const SLOTS = ['09:00', '10:00', '11:00', '13:00', '14:00', '15:00', '16:00', '17:00'];
 const DAY_LABELS = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
 const DAY_MAP = { 0: 'SUN', 1: 'MON', 2: 'TUE', 3: 'WED', 4: 'THU', 5: 'FRI', 6: 'SAT' };
 
@@ -163,7 +162,8 @@ export default function BookingScreen({ route, navigation }) {
         id: s.id,
         name: s.fullName,
         role: 'Chuyên gia',
-        avatar: `https://i.pravatar.cc/150?u=${s.id}`
+        avatar: `https://i.pravatar.cc/150?u=${s.id}`,
+        schedules: s.schedules || [] // Lưu trữ toàn bộ lịch làm việc của nhân viên
       }));
       setStaffs(formatted);
     } catch (error) {
@@ -195,11 +195,12 @@ export default function BookingScreen({ route, navigation }) {
 
   // Format tháng hiển thị
   const currentMonth = selectedDate.dateObj.toLocaleDateString('vi-VN', { month: 'long', year: 'numeric' });
+  const insets = useSafeAreaInsets();
 
   return (
     <View style={styles.container}>
       <StatusBar style="dark" />
-      <SafeAreaView style={{ flex: 1 }}>
+      <SafeAreaView style={{ flex: 1 }} edges={['top', 'left', 'right']}>
         
         {/* Header */}
         <View style={styles.header}>
@@ -210,7 +211,10 @@ export default function BookingScreen({ route, navigation }) {
           <View style={{ width: 44 }} />
         </View>
 
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
+        <ScrollView 
+          showsVerticalScrollIndicator={false} 
+          contentContainerStyle={{ paddingBottom: insets.bottom + 140 }}
+        >
           
           <Animated.View style={[
             styles.heroSection, 
@@ -332,41 +336,68 @@ export default function BookingScreen({ route, navigation }) {
           </View>
 
           {/* BƯỚC 3: Chọn giờ */}
-          {filteredStaffs.length > 0 && selectedStaff && (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Chọn thời gian</Text>
-              <View style={styles.slotGrid}>
-                {SLOTS.map(slot => {
-                  const isBusy = isSlotBusy(slot);
-                  const isPast = isSlotPast(slot);
-                  const isDisabled = isBusy || isPast;
-                  return (
-                    <TouchableOpacity 
-                      key={slot}
-                      disabled={isDisabled}
-                      style={[
-                        styles.slot, 
-                        selectedSlot === slot && styles.slotActive,
-                        isDisabled && styles.slotBusy
-                      ]}
-                      onPress={() => setSelectedSlot(slot)}
-                    >
-                      <Text style={[
-                        styles.slotText, 
-                        selectedSlot === slot && styles.slotTextActive,
-                        isDisabled && styles.slotTextBusy
-                      ]}>{slot}</Text>
-                    </TouchableOpacity>
-                  );
-                })}
+          {filteredStaffs.length > 0 && selectedStaff && (() => {
+            // Lấy ra schedule cụ thể của staff được chọn cho ngày được chọn
+            const currentStaffObj = staffs.find(s => s.id === selectedStaff);
+            const todaySchedule = currentStaffObj?.schedules?.find(
+              sch => sch.dayOfWeek === selectedDate.dayOfWeek && sch.serviceId === service.id
+            );
+
+            if (!todaySchedule) return null;
+
+            // Generate slots cách nhau 1 tiếng từ startTime đến endTime
+            const [startH, startM] = todaySchedule.startTime.split(':').map(Number);
+            const [endH, endM] = todaySchedule.endTime.split(':').map(Number);
+            const startMinutes = startH * 60 + startM;
+            const endMinutes = endH * 60 + endM;
+
+            const dynamicSlots = [];
+            // Bắt đầu từ startMinutes, cộng thêm mỗi slot cách nhau 60 phút
+            for (let min = startMinutes; min + 60 <= endMinutes; min += 60) {
+              const h = Math.floor(min / 60);
+              const m = min % 60;
+              const slotStr = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+              dynamicSlots.push(slotStr);
+            }
+
+            if (dynamicSlots.length === 0) return null;
+
+            return (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Chọn thời gian</Text>
+                <View style={styles.slotGrid}>
+                  {dynamicSlots.map(slot => {
+                    const isBusy = isSlotBusy(slot);
+                    const isPast = isSlotPast(slot);
+                    const isDisabled = isBusy || isPast;
+                    return (
+                      <TouchableOpacity 
+                        key={slot}
+                        disabled={isDisabled}
+                        style={[
+                          styles.slot, 
+                          selectedSlot === slot && styles.slotActive,
+                          isDisabled && styles.slotBusy
+                        ]}
+                        onPress={() => setSelectedSlot(slot)}
+                      >
+                        <Text style={[
+                          styles.slotText, 
+                          selectedSlot === slot && styles.slotTextActive,
+                          isDisabled && styles.slotTextBusy
+                        ]}>{slot}</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
               </View>
-            </View>
-          )}
+            );
+          })()}
 
         </ScrollView>
 
         {/* Floating Footer */}
-        <View style={styles.footer}>
+        <View style={[styles.footer, { paddingBottom: Platform.OS === 'ios' ? insets.bottom + 12 : Math.max(insets.bottom, 16) }]}>
           <View style={styles.priceContainer}>
             <Text style={styles.priceLabel}>Tổng thanh toán</Text>
             <Text style={styles.priceValue}>{parseInt(service.price).toLocaleString()}đ</Text>

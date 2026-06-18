@@ -4,8 +4,9 @@ import {
   ScrollView, Alert, ActivityIndicator, Modal, TextInput 
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { User, Settings, Bell, Shield, LogOut, ChevronRight, Clock, Save, Image as ImageIcon, Lock } from 'lucide-react-native';
+import { User, Settings, Shield, LogOut, ChevronRight, Clock, Save, Image as ImageIcon, Lock } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { CommonActions } from '@react-navigation/native';
 import { theme } from '../theme/theme';
 import BottomNav from '../components/BottomNav';
 
@@ -76,7 +77,12 @@ export default function ProfileScreen({ navigation }) {
       { text: 'Đăng xuất', onPress: async () => {
           await AsyncStorage.removeItem('token');
           await AsyncStorage.removeItem('user');
-          navigation.replace('Login');
+          navigation.dispatch(
+            CommonActions.reset({
+              index: 0,
+              routes: [{ name: 'Login' }],
+            })
+          );
         }
       }
     ]);
@@ -88,9 +94,6 @@ export default function ProfileScreen({ navigation }) {
     ];
     if (isAdmin) baseMenu.push({ id: 'admin', icon: Shield, title: 'Quản trị hệ thống', action: () => navigation.navigate('AdminDashboard') });
     if (isStaff || isAdmin) baseMenu.push({ id: 'staff', icon: Clock, title: 'Nhiệm vụ nhân viên', action: () => navigation.navigate('StaffDashboard') });
-    baseMenu.push(
-      { id: '3', icon: Bell, title: 'Cài đặt thông báo', action: () => Alert.alert('Thông báo', 'Đã bật thông báo đẩy') }
-    );
     return baseMenu;
   };
 
