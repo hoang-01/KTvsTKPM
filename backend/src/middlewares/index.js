@@ -28,4 +28,6 @@ const errorHandler = (err, req, res, next) => {
   });
 };
 
-module.exports = { authMiddleware, roleMiddleware, errorHandler };
+const { validateRegister, validateLogin } = require('./validation.middleware');
+
+module.exports = { authMiddleware, roleMiddleware, errorHandler, validateRegister, validateLogin };

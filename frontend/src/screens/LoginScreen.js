@@ -5,8 +5,9 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Mail, Lock, Fingerprint } from 'lucide-react-native';
+import { Mail, Lock } from 'lucide-react-native';
 import { theme } from '../theme/theme';
+import { CommonActions } from '@react-navigation/native';
 import { PremiumButton, GlassInput } from '../components/Common';
 import { authService } from '../services/api';
 
@@ -19,7 +20,12 @@ export default function LoginScreen({ navigation }) {
     try {
       setLoading(true);
       await authService.login({ email, password });
-      navigation.replace('MainTabs');
+      navigation.dispatch(
+        CommonActions.reset({
+          index: 0,
+          routes: [{ name: 'MainTabs' }],
+        })
+      );
     } catch (error) {
       console.error(error);
       Alert.alert('Lỗi đăng nhập', 'Email hoặc mật khẩu không chính xác');
@@ -80,23 +86,8 @@ export default function LoginScreen({ navigation }) {
                 title="Đăng nhập" 
                 onPress={handleLogin} 
                 loading={loading}
-                style={{ marginTop: 10 }}
+                style={{ marginTop: 10, marginBottom: 16 }}
               />
-
-              <View style={styles.divider}>
-                <View style={styles.line} />
-                <Text style={styles.dividerText}>Hoặc đăng nhập nhanh</Text>
-                <View style={styles.line} />
-              </View>
-
-              <View style={styles.socialRow}>
-                <TouchableOpacity 
-                  style={styles.socialBtn}
-                  onPress={() => Alert.alert('Biometric', 'Vui lòng xác thực bằng Vân tay/Khuôn mặt')}
-                >
-                  <Fingerprint color={theme.colors.primary} size={28} />
-                </TouchableOpacity>
-              </View>
             </View>
 
             <View style={styles.footer}>

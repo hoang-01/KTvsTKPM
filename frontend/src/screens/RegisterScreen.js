@@ -3,6 +3,7 @@ import {
   StyleSheet, View, Text, TextInput, TouchableOpacity, 
   KeyboardAvoidingView, Platform, ScrollView, Alert, ActivityIndicator 
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { User, Mail, Lock, Phone, ArrowLeft } from 'lucide-react-native';
 import { theme } from '../theme/theme';
@@ -19,19 +20,42 @@ export default function RegisterScreen({ navigation }) {
 
   const handleRegister = async () => {
     const { fullName, email, phone, password } = formData;
-    if (!fullName || !email || !phone || !password) {
-      Alert.alert('Lỗi', 'Vui lòng nhập đầy đủ thông tin');
+    
+    // Check trống
+    if (!fullName.trim() || !email.trim() || !phone.trim() || !password) {
+      Alert.alert('Lỗi nhập liệu', 'Vui lòng điền đầy đủ tất cả các trường.');
+      return;
+    }
+
+    // Check định dạng email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim())) {
+      Alert.alert('Lỗi nhập liệu', 'Địa chỉ email không đúng định dạng.');
+      return;
+    }
+
+    // Check số điện thoại
+    const phoneRegex = /^[0-9]{9,11}$/;
+    if (!phoneRegex.test(phone.trim())) {
+      Alert.alert('Lỗi nhập liệu', 'Số điện thoại phải chứa từ 9 đến 11 chữ số.');
+      return;
+    }
+
+    // Check độ dài mật khẩu
+    if (password.length < 6) {
+      Alert.alert('Lỗi nhập liệu', 'Mật khẩu phải chứa ít nhất 6 ký tự.');
       return;
     }
 
     setLoading(true);
     try {
       await authService.register(formData);
-      Alert.alert('Thành công', 'Đăng ký tài khoản thành công. Vui lòng đăng nhập.', [
+      Alert.alert('Đăng ký thành công', 'Tài khoản của bạn đã được khởi tạo. Vui lòng đăng nhập để tiếp tục.', [
         { text: 'Đăng nhập ngay', onPress: () => navigation.navigate('Login') }
       ]);
     } catch (error) {
-      Alert.alert('Lỗi', error.message || 'Đăng ký không thành công');
+      console.error(error);
+      Alert.alert('Lỗi đăng ký', typeof error === 'string' ? error : (error.message || 'Đăng ký không thành công. Vui lòng thử lại.'));
     } finally {
       setLoading(false);
     }
@@ -135,5 +159,3 @@ const styles = StyleSheet.create({
   gradient: { height: 56, justifyContent: 'center', alignItems: 'center', borderRadius: 16 },
   buttonText: { color: 'white', fontSize: 18, fontWeight: 'bold' }
 });
-
-import { SafeAreaView } from 'react-native-safe-area-context';
