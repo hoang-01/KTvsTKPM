@@ -37,9 +37,6 @@ backend/.env
 frontend/.env
 
 # Docker files
-docker-compose.yml
-**/Dockerfile
-**/.dockerignore
 
 # Reports and temporary docs
 baocao.md
